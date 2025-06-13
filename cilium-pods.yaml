@@ -1,0 +1,60 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cilium-demo
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-b
+  namespace: cilium-demo
+  labels:
+    app: backend
+spec:
+  containers:
+  - name: http-server
+    image: hashicorp/http-echo
+    args:
+      - "-text=Hello from pod-b"
+    ports:
+      - containerPort: 5678
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pod-b
+  namespace: cilium-demo
+spec:
+  selector:
+    app: backend
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 5678
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-a
+  namespace: cilium-demo
+  labels:
+    app: frontend
+spec:
+  containers:
+  - name: curl
+    image: curlimages/curl
+    command: ["sleep", "3600"]
+---
+apiVersion: "cilium.io/v2"
+kind: CiliumNetworkPolicy
+metadata:
+  name: allow-a-to-b
+  namespace: cilium-demo
+spec:
+  endpointSelector:
+    matchLabels:
+      app: backend
+  ingress:
+  - fromEndpoints:
+    - matchLabels:
+        app: frontend
